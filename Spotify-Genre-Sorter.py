@@ -6,12 +6,13 @@ from os import system, name
 from time import sleep
 # Know Bugs
 # returning empty for playlists
-# cached profiles interfere with each toher
-# must double press enter on authentification
+# cached profiles interfere with each other
 
 # desired features
 # cache artist genre info
 # add tracks in batches
+
+
 def main():
     spot_obj = authenticate()
     track_genre = get_tracks(spot_obj) # tuple of (tracks,genres)
@@ -78,8 +79,10 @@ def select_genres(genre_set: set) -> list:
     time.sleep(1)
     for genre in genre_set:
         print(genre)
-    sg_string = input("Please type selected genres in a comma seperated list\n"
-                      "Example: Rock,  deep underground hip hop, brostep\n")
+    sg_string = ''
+    while len(sg_string) == 0:
+        sg_string = input("Please type selected genres in a comma seperated list\n"
+                          "Example: Rock,  deep underground hip hop, brostep\n")
     selected_genres = sg_string.split(',')
     # remove trailing whitespace
     selected_genres = ['genre_{}'.format(genre.strip()) for genre in selected_genres]
@@ -92,7 +95,7 @@ def match_playlists(spot: spotipy.Spotify, sg: list) ->list:
     # create list of users playlists
     print("Finding existing playlists")
     play_obj = spot.current_user_playlists()
-    sg_tup= sg
+    sg_tup = sg
     while play_obj is not None:
         for playlist in play_obj['items']:
             try:
