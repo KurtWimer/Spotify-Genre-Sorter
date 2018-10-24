@@ -3,23 +3,20 @@ import spotipy.util
 import time
 
 from os import system, name
-from time import sleep
-# Know Bugs
-# returning empty for playlists
-# cached profiles interfere with each other
 
 # desired features
-# cache artist genre info
 # add tracks in batches
+# get genres from album instead of artist?
 
 
 def main():
     spot_obj = authenticate()
-    track_genre = get_tracks(spot_obj) # tuple of (tracks,genres)
+    track_genre = get_tracks(spot_obj)  # tuple of (tracks,genres)
     selected_genres = select_genres(track_genre[1])
-    genre_id = match_playlists(spot_obj, selected_genres) # tuple of (str genre, str plid)
+    genre_id = match_playlists(spot_obj, selected_genres)  # tuple of (str genre, str plid)
     update_playlists(spot_obj, genre_id, track_genre[0])
     print('Success')
+
 
 def clear_scrn():
     if name == 'nt':
@@ -58,17 +55,28 @@ def get_tracks(spot: spotipy.Spotify) -> tuple:
     genre_set = set()
     track_list = list()
     count = 0
+    artist_cache = list()  # tuples(name,[genres])
     while tracks is not None:
         clear_scrn()
-        print('Finding Tracks{}'.format(count))
-        count +=50
+        print('Finding Tracks: {}'.format(count))
+        count += 50
+        artist_cache = set()
         for item in tracks['items']:
-            artist_info = spot.artist(item['track']['artists'][0]['uri'])
-            artist_genres = artist_info['genres']
-            for genre in artist_genres:
-                genre_set.add(genre)
+            # check cache
+            artist_name = item['track']['artists'][0]['name']
+            for artist in artist_cache:  # get info from cache
+                if artist[0] == artist_name:
+                    artist_genres = artist[1]
+                    break
+            else:  # get info from spotify
+                artist_info = spot.artist(item['track']['artists'][0]['uri'])
+                artist_genres = artist_info['genres']
+                artist_cache.add((artist_name, tuple(artist_genres)))
+                for genre in artist_genres:
+                    genre_set.add(genre)
+
             track_list.append([item['track']['name'], item['track']['id'], artist_genres])
-        tracks = spot.next(tracks)
+        tracks = spot.next(tracks)  # todo eliminate redundancy
     returnval = (track_list, genre_set)
     return returnval
 
@@ -91,7 +99,7 @@ def select_genres(genre_set: set) -> list:
 
 # paramaters: spotify object, selected genres list
 # returns: a list of tuples formated as follows (genre, playlist id)
-def match_playlists(spot: spotipy.Spotify, sg: list) ->list:
+def match_playlists(spot: spotipy.Spotify, sg: list) -> list:
     # create list of users playlists
     print("Finding existing playlists")
     play_obj = spot.current_user_playlists()
@@ -127,29 +135,23 @@ def match_playlists(spot: spotipy.Spotify, sg: list) ->list:
     return sg_tup
 
 
-def update_playlists(spot: spotipy.Spotify,sg_tup: list, tracks: list):
+def update_playlists(spot: spotipy.Spotify, sg_tup: list, tracks: list):
     user_obj = spot.current_user()
     uid = user_obj['id']
     # add tracks to respective genres
     print("Filling out playlists")
     count = 0
     for track in tracks:
-        if count%25==0:
+        if count % 50 == 0:
             clear_scrn()
             print("Processed {} out of {} tracks".format(count, len(tracks)))
         count += 1
         for play_genre in sg_tup:
             for genre in track[2]:
-                if play_genre[0][6:] == genre: # must removve the tag before comparison
+                if play_genre[0][6:] == genre:  # must removve the tag before comparison
                     # todo ideally I should add in batches of <=50
                     spot.user_playlist_add_tracks(uid, play_genre[1], [track[1]])
 
 
 if __name__ == '__main__':
     main()
-
-
-
-
-
-
