@@ -8,16 +8,16 @@ from os import system, name
 # add tracks in batches
 # get genres from album instead of artist?
 
-
+# Retrieve all tracks, sort by genre, create/update playlists based upon user selection
 def main():
     spot_obj = authenticate()
-    track_genre = get_tracks(spot_obj)  # tuple of (tracks,genres)
+    track_genre = get_tracks(spot_obj)  # tuple of (tracks,genres in dictionary containing frequency)
     selected_genres = select_genres(track_genre[1])
     genre_id = match_playlists(spot_obj, selected_genres)  # tuple of (str genre, str plid)
     update_playlists(spot_obj, genre_id, track_genre[0])
     print('Success')
 
-
+# Utility function to clear terminal screen
 def clear_scrn():
     if name == 'nt':
         _ = system('cls')
@@ -25,6 +25,7 @@ def clear_scrn():
         _ = system('clear')
 
 
+#Authenticate spotify user
 def authenticate() -> spotipy.Spotify:
     # DO NOT LEAVE IF POSTED TO GITHUB
     client_id = '392baf4fd4ab42c994f5c0959f9d57c7'
@@ -46,16 +47,17 @@ def authenticate() -> spotipy.Spotify:
         exit(code=1)
     return spot
 
-
-# return values: (track_list, genre_set)
+# Retrieve all of the spotify users tracks and respective genres
+# return values: (track_list, genres)
+# track_list is a list of tuples containing (name, spotify id, genres)
+# genres is a dictionary containing genre as key and frequency as value
 def get_tracks(spot: spotipy.Spotify) -> tuple:
     tracks = spot.current_user_saved_tracks(limit=50)
     # get tracks and thier genres
     print("Finding Tracks")
-    genre_set = set()
+    genre_dict= dict()
     track_list = list()
     count = 0
-    artist_cache = list()  # tuples(name,[genres])
     while tracks is not None:
         clear_scrn()
         print('Finding Tracks: {}'.format(count))
@@ -72,21 +74,31 @@ def get_tracks(spot: spotipy.Spotify) -> tuple:
                 artist_info = spot.artist(item['track']['artists'][0]['uri'])
                 artist_genres = artist_info['genres']
                 artist_cache.add((artist_name, tuple(artist_genres)))
-                for genre in artist_genres:
-                    genre_set.add(genre)
-
+            for genre in artist_genres:
+                if genre in genre_dict:
+                    genre_dict[genre] += 1#update for dict/counter
+                else:
+                    genre_dict[genre] = 1
             track_list.append([item['track']['name'], item['track']['id'], artist_genres])
-        tracks = spot.next(tracks)  # todo eliminate redundancy
-    returnval = (track_list, genre_set)
+        tracks = spot.next(tracks)
+    returnval = (track_list, genre_dict)
     return returnval
 
 
-def select_genres(genre_set: set) -> list:
+def select_genres(genre_dict: dict) -> list:
     # select genres
+    while True:
+        try:
+            min = int(input("Please input a minimum song number to display genres for: "))
+        except ValueError:
+            print("Expected Integer")
+            continue
+        break
     print('Here are your music genres: ')
     time.sleep(1)
-    for genre in genre_set:
-        print(genre)
+    for genre in sorted(genre_dict):
+        if genre_dict[genre] >= min:
+            print(genre)
     sg_string = ''
     while len(sg_string) == 0:
         sg_string = input("Please type selected genres in a comma seperated list\n"
