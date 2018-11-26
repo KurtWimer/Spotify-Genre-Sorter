@@ -28,8 +28,8 @@ def clear_scrn():
 #Authenticate spotify user
 def authenticate() -> spotipy.Spotify:
     # DO NOT LEAVE IF POSTED TO GITHUB
-    client_id = '392baf4fd4ab42c994f5c0959f9d57c7'
-    client_secret = 'd8b2569fdd7b4a4babfe2325069b34da'
+    client_id = 
+    client_secret =
     # DO NOT LEAVE IF POSTED TO GITHUB
 
     redirect_uri = 'http://localhost/'
@@ -153,17 +153,25 @@ def update_playlists(spot: spotipy.Spotify, sg_tup: list, tracks: list):
     # add tracks to respective genres
     print("Filling out playlists")
     count = 0
+    track_queue = list()
+    for play_genre in sg_tup: #[genre,[id's]]
+        track_queue.append([play_genre, []])
+    print("Sorting tracks to add")
     for track in tracks:
         if count % 50 == 0:
             clear_scrn()
             print("Processed {} out of {} tracks".format(count, len(tracks)))
         count += 1
-        for play_genre in sg_tup:
+        for play_genre, play_tracks in track_queue:
             for genre in track[2]:
-                if play_genre[0][6:] == genre:  # must removve the tag before comparison
+                if play_genre[0][6:] == genre:  # must remove the tag before comparison
                     # todo ideally I should add in batches of <=50
-                    spot.user_playlist_add_tracks(uid, play_genre[1], [track[1]])
-
+                    play_tracks.append(track[1])
+    for play_genre, play_tracks in track_queue:
+        print("Processing {}".format(play_genre[0][6:]))
+        while len(play_tracks) > 0:
+            spot.user_playlist_add_tracks(uid, play_genre[1], play_tracks[:50])
+            del play_tracks[:50]
 
 if __name__ == '__main__':
     main()
