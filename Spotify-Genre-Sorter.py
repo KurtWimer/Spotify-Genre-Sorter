@@ -1,7 +1,7 @@
 import spotipy
 import spotipy.util
 import time
-import Library
+from Library import Library
 
 from os import system, name
 
@@ -23,8 +23,8 @@ def main():
 # Authenticate spotify user
 def authenticate() -> spotipy.Spotify:
     # DO NOT LEAVE IF POSTED TO GITHUB
-    client_id = "e03655052013460a9b7800da563d0af0"
-    client_secret = "46e7e7acd85f4d67b4c51149c54e85cd"
+    client_id = "392baf4fd4ab42c994f5c0959f9d57c7"
+    client_secret = "74b983ff3ed84ce19448f40bd649b6b6"
     # DO NOT LEAVE IF POSTED TO GITHUB
 
     redirect_uri = 'http://localhost/'

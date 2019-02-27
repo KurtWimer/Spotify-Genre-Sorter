@@ -1,7 +1,19 @@
 import spotipy
 import spotipy.util
-import Song
-import Artist
+import os
+
+
+class Song:
+    def __init__(self, id, artist, genres):
+        self.id = id
+        self.artist = artist
+        self.genres = genres
+
+
+class Artist:
+    def __init__(self, uri, genres):
+        self.genres = genres
+        self.uri = uri
 
 
 class Library:
@@ -9,14 +21,11 @@ class Library:
         self.artists = set()
         self.songs = set()
         self.genres = dict()
-        self.playlists = set()
+        self.playlists = dict()
         self.modifier = mod
         self.spot = spotify
 
-    # Retrieve all of the spotify users tracks and respective genres
-    # return values: (track_list, genres)
-    # track_list is a list of tuples containing (name, spotify id, genres)
-    # genres is a dictionary containing genre as key and frequency as value
+    # Retrieve all of the spotify users tracks
     def get_tracks(self):
         tracks = self.spot.current_user_saved_tracks(limit=50)
         # get tracks and thier genres
@@ -34,7 +43,7 @@ class Library:
                         self.genres[genre] += 1
                     else:
                         self.genres[genre] = 1
-                self.songs.add(Song.Song(item['track']['id'], item['track']['artists'][0]['uri'], track_genres))
+                self.songs.add(Song(item['track']['id'], item['track']['artists'][0]['uri'], track_genres))
             tracks = self.spot.next(tracks)
 
     def cache_artist_genres(self, uri):
@@ -48,8 +57,6 @@ class Library:
             track_genres = artist_genres
         return track_genres
 
-    # paramaters: spotify object, selected genres list
-    # returns: a list of tuples formated as follows (genre, playlist id)
     def match_playlists(self, sg: list):
         # create list of users playlists
         print("Finding existing playlists")
@@ -58,12 +65,12 @@ class Library:
             for pl in play_obj['items']:
                 genre = pl['name'][len(self.modifier):]
                 if genre in sg:
-                    self.playlists[genre] = play_obj['items']['id']
+                    self.playlists[genre] = pl['id']
             play_obj = self.spot.next(play_obj)
 
     def create_playlists(self, sg):
         # create genre playlists
-        print("Updating/Creating Playlists")
+        print("Creating Playlists")
         user_obj = self.spot.current_user()
         uid = user_obj['id']
         play_url = "https://api.spotify.com/v1/users/{}/playlists/".format(uid)
@@ -72,14 +79,13 @@ class Library:
             if genre not in self.playlists:
                 # create playlist
                 payload = {
-                    "name": genre,
+                    "name": self.modifier+genre,
                     "public": False,
                     "description": "Created by Spotify-Genre-Sorter"
                 }
-                # use _get to acess spot api to create playlist
+                # use _get to access spot api to create playlist
                 # this is a private function but Python can't tell me how to live my life
                 result = self.spot._post(play_url, payload=payload)
-                # convert to tuple
                 self.playlists[genre] = result['id']
 
     def update_playlists(self, sg: list):
@@ -87,9 +93,8 @@ class Library:
         self.create_playlists(sg)
         user_obj = self.spot.current_user()
         uid = user_obj['id']
-        # add tracks to respective genres
+        # add tracks to respective genres# convert to tuple
         print("Filling out playlists")
-        count = 0
         track_queue = dict()
         for genre in sg:  # [genre,[id's]]
             track_queue[genre] = list()
@@ -97,20 +102,20 @@ class Library:
         for count, track in enumerate(self.songs):
             if count % 50 == 0:
                 self.clear_screen()
-                print("Processed {} out of {} tracks".format(count, len(tracks)))
+                print("Processed {} out of {} tracks".format(count, len(self.songs)))
             for genre in sg:
                 if genre in track.genres:
                     track_queue[genre].append(track.id)
-        for genre, play_tracks in track_queue:
+        for genre, play_tracks in track_queue.items():
             print("Processing {}".format(genre))
             while len(play_tracks) > 0:
-                self.spot.user_playlist_add_tracks(uid, self.modifier+genre, play_tracks[:50])
+                self.spot.user_playlist_add_tracks(uid, self.playlists[genre], play_tracks[:50])
                 del play_tracks[:50]
 
     # Utility function to clear terminal screen
     @staticmethod
     def clear_screen():
-        if name == 'nt':
-            _ = system('cls')
+        if os.name == 'nt':
+            _ = os.system('cls')
         else:
-            _ = system('clear')
+            _ = os.system('clear')
