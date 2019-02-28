@@ -3,7 +3,6 @@ import spotipy.util
 import time
 from Library import Library
 
-from os import system, name
 
 
 # desired features
