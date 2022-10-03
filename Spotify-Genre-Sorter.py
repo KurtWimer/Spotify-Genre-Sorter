@@ -21,10 +21,10 @@ def main():
 
 # Authenticate spotify user
 def authenticate() -> spotipy.Spotify:
-    # DO NOT LEAVE IF POSTED TO GITHUB
+    # INVALID KEYS
     client_id = "392baf4fd4ab42c994f5c0959f9d57c7"
     client_secret = "74b983ff3ed84ce19448f40bd649b6b6"
-    # DO NOT LEAVE IF POSTED TO GITHUB
+    # INVALID KEYS
 
     redirect_uri = 'http://localhost/'
     scope = 'user-library-read playlist-modify-private playlist-read-collaborative playlist-read-private'
